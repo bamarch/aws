@@ -21,6 +21,13 @@ resource "aws_s3_bucket" "workstation_backup_bucket" {
   }
 }
 
+resource "aws_s3_bucket_public_access_block" "workstation_backup_bucket" {
+  bucket = aws_s3_bucket.workstation_backup_bucket.id
+
+  block_public_acls   = true
+  block_public_policy = true
+}
+
 resource "aws_iam_access_key" "rclone_backup_workstation" {
   user = aws_iam_user.rclone_backup_workstation.name
   pgp_key = "keybase:bamarch"
