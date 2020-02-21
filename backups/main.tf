@@ -8,7 +8,7 @@ resource "aws_s3_bucket" "workstation_backup_bucket" {
   acl    = "private"
 
   versioning {
-    enabled = true
+    enabled = false
   }
 
   server_side_encryption_configuration {
@@ -21,3 +21,57 @@ resource "aws_s3_bucket" "workstation_backup_bucket" {
   }
 }
 
+resource "aws_iam_access_key" "rclone_backup_workstation" {
+  user = aws_iam_user.rclone_backup_workstation.name
+  pgp_key = "keybase:bamarch"
+}
+
+resource "aws_iam_user" "rclone_backup_workstation" {
+  name = "rclone_backup_workstation"
+  path = "/system/"
+}
+
+resource "aws_iam_user_group_membership" "rclone_backup_workstation" {
+  user = aws_iam_user.rclone_backup_workstation.name
+
+  groups = [
+    aws_iam_group.rclone_backup_workstation.name
+  ]
+}
+
+resource "aws_iam_group" "rclone_backup_workstation" {
+  name = "rclone_backup_workstation"
+  path = "/system/"
+}
+
+resource "aws_iam_group_policy" "rclone_backup_workstation" {
+  name = "rclone_backup_workstation"
+  group = aws_iam_group.rclone_backup_workstation.id
+
+  policy = <<EOF
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": [
+                "s3:ListBucket",
+                "s3:DeleteObject",
+                "s3:GetObject",
+                "s3:PutObject",
+                "s3:PutObjectAcl"
+            ],
+            "Resource": [
+              "${aws_s3_bucket.workstation_backup_bucket.arn}/*",
+              "${aws_s3_bucket.workstation_backup_bucket.arn}"
+            ]
+        },
+        {
+            "Effect": "Allow",
+            "Action": "s3:ListAllMyBuckets",
+            "Resource": "arn:aws:s3:::*"
+        }	
+    ]
+}
+EOF
+}
